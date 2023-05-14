@@ -1,12 +1,15 @@
 from django.shortcuts import render,HttpResponse
 from .models import *
 from datetime import datetime
+from django.db.models import Q
+
 
 
 # Create your views here.
 
 def index(request):
-	return render (request,'index.html')
+    return render(request, 'index.html')
+
 
 def all_emp(request):
     emps = Employee.objects.all()
@@ -14,47 +17,25 @@ def all_emp(request):
         'emps': emps
     }
     print(context)
-    return render(request, 'view_all_emp.html', context)
+    return render(request, 'all_emp.html', context)
+
 
 def add_emp(request):
     if request.method == 'POST':
-        first_name = request.POST['first_name']
-        last_name = request.POST['last_name']
-        salary = int(request.POST['salary'])
-        bonus = int(request.POST.get('bonus', 0))
-        phone = int(request.POST.get('phone', 0))
-        dept = int(request.POST['dept'])
-        
-        designation = request.POST.get('designation', 0)
-        try:
-            deg = int(designation)
-        except ValueError:
-            return HttpResponse("Invalid designation value.")
-        
-        image = request.FILES.get('media', None) # Access the uploaded image file
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        salary = request.POST.get('salary', '')
+        bonus = request.POST.get('bonus', '')
+        phone = request.POST.get('phone', '')
+        dept = request.POST.get('dept', '')
+        deg = request.POST.get('deg', '')
         hire_date = datetime.now()
-
-        if image is not None:
-            if image.size > 1024 * 1024:  # 1MB = 1024KB = 1024 * 1024 bytes
-                return HttpResponse("Image size should be less than 1MB.")
-            else:
-                new_emp = Employee(
-                    first_name=first_name,
-                    last_name=last_name,
-                    salary=salary,
-                    bonus=bonus,
-                    phone=phone,
-                    dept_id=dept,
-                    deg_id=deg,  # Use the correct field name for the designation
-                    image=image,
-                    hire_date=hire_date
-                )
-                new_emp.save()
-                return HttpResponse('Employee added Successfully')
-        else:
-            return HttpResponse("No image uploaded.")
-
-    return render(request, 'add_emp.html')
+        
+        return HttpResponse('Employee added Successfully')
+    elif request.method=='GET':
+        return render(request, 'add_emp.html')
+    else:
+        return HttpResponse("An Exception Occured! Employee Has Not Been Added")
 
 
 def remove_emp(request, emp_id = 0):
@@ -73,4 +54,24 @@ def remove_emp(request, emp_id = 0):
 
 
 def filter_emp(request):
-	return render (request,'filter_emp.html')
+    if request.method == 'POST':
+        name = request.POST['name']
+        dept = request.POST['dept']
+        role = request.POST['role']
+        emps = Employee.objects.all()
+        if name:
+            emps = emps.filter(Q(first_name__icontains = name) | Q(last_name__icontains = name))
+        if dept:
+            emps = emps.filter(dept__name__icontains = dept)
+        if role:
+            emps = emps.filter(role__name__icontains = role)
+
+        context = {
+            'emps': emps
+        }
+        return render(request, 'all_emp.html', context)
+
+    elif request.method == 'GET':
+        return render(request, 'filter_emp.html')
+    else:
+        return HttpResponse('An Exception Occurred')
